@@ -1,0 +1,56 @@
+> init A
+OK
+> ins A hola
+OK
+> ins A adeu
+OK
+> ins A hello
+OK
+> ins A goodbye
+OK
+> ins A hola
+OK
+> ins A adios
+OK
+> cont A hola
+true
+> del A hola
+OK
+> del A ciao
+OK
+> cont A au_revoir
+false
+> init B
+OK
+> card B
+0
+> ins B halo
+OK
+> ins B auf_widersen
+OK
+> ins B hola
+OK
+> ins B adios
+OK
+> cont A halo
+false
+> merge A B
+OK
+> cont A halo
+true
+> all A
+[adeu,adios,auf_widersen,goodbye,halo,hello,hola]
+> all B
+[]
+> card A
+7
+> nth A 4
+goodbye
+> max C
+ERROR
+> max B
+ERROR
+> max A
+hola
+> leq A agur
+2

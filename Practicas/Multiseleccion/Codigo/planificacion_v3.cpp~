@@ -1,0 +1,290 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <queue>
+#include <sstream>
+using namespace std;
+
+struct Nodo{
+  string nombre;
+  int peso;
+  vector<string> adyacientes;
+};
+vector<Nodo> grafo;
+//Nodos que dependen del nodo START.
+vector<int> dependientesSTART;
+vector<int> caminos;
+vector<bool> caminoCritico;
+vector<bool> dependencias;
+vector<int> ls;
+//Guarda los indices correspondientes a cada nodo del grafo.
+map<string,int> indices;
+int nTareas;
+
+void leerGrafo(){
+  cin >> nTareas;
+  grafo = vector<Nodo>(nTareas);
+  caminoCritico = vector<bool>(nTareas,false);
+  //nTareas+1 porque guardamos el camino máximo hacia el nodo END también.
+  caminos = vector<int>(nTareas+1,0);
+  dependencias = vector<bool>(nTareas,false);
+  ls = vector<int>(nTareas+1,0);
+  for(int i = 0; i < nTareas; ++i){
+    string s;
+    int p;
+    cin >> s >> p;
+    grafo[i].nombre = s;
+    grafo[i].peso = p;
+    indices[s] = i;
+    bool tieneAdyacientes = false;
+    cin >> s;
+    while(s != "@"){
+      tieneAdyacientes = true;
+      grafo[i].adyacientes.push_back(s);
+      cin >> s;
+    }
+    //Guardamos los nodos de los que depende END (son aquellos que no tienen nodos adyacientes en el grafo).
+    if(!tieneAdyacientes) grafo[i].adyacientes.push_back("END");
+  }
+  indices["END"] = nTareas;
+}
+
+bool existeCiclo(int nodo, int objetivo){
+  cout << "nodo = " << nodo << ", objetivo = " << objetivo << endl;
+  if(nodo == objetivo) return true;
+  int tam = grafo[nodo].adyacientes.size();
+  for(int i = 0; i < tam; ++i){
+    int indice = indices[grafo[nodo].adyacientes[i]];
+    bool b = existeCiclo(indice,objetivo);
+    if(b) return true;
+  }
+  return false;
+}
+
+bool comprobarGrafoCiclico(){
+  int tam = dependientesSTART.size();
+  cout << "tam = " << tam << endl;
+  for(int i = 0; i < tam; ++i){
+   int nodo = dependientesSTART[i];
+   int n = grafo[nodo].adyacientes.size();
+   for(int j = 0; j < n; ++j){
+     int indice = indices[grafo[nodo].adyacientes[j]];
+     return existeCiclo(indice,nodo);
+   }
+  }
+}
+
+void guardarDependientesSTART(){
+  for(int i = 0; i < nTareas; ++i){
+    int tam = grafo[i].adyacientes.size();
+    for(int j = 0; j < tam; ++j){
+      int indice = indices[grafo[i].adyacientes[j]];
+      dependencias[indice] = true;
+    }
+  }
+  for(int i = 0; i < nTareas; ++i){
+    if(!dependencias[i]) dependientesSTART.push_back(i);
+  }
+}
+
+void bfsCaminosMaximos(int nodo){
+  queue<int> q;
+  q.push(nodo);
+  while(!q.empty()){
+    int nodoActual = q.front();
+    q.pop();
+    int tam = grafo[nodoActual].adyacientes.size();
+    for(int i = 0; i < tam; ++i){
+      int indice = indices[grafo[nodoActual].adyacientes[i]];
+      int coste = grafo[nodoActual].peso;
+      int camino = caminos[nodoActual] + coste;
+      //Controlamos que el nodo no sea END.
+      if(indice != nTareas) q.push(indice);
+      //Guardamos el camino mayor encontrado hasta ahora en la posición del vector de caminos correspondiente.
+      if(caminos[indice] < camino) caminos[indice] = camino;
+    }
+  }
+}
+
+//Indica si un nodo pertenece a algun camino crítico o no.
+bool perteneceCaminoCritico(int nodo){
+  if(nodo == nTareas) {
+    caminoCritico[nodo] = true;
+    return true;
+  }
+  int tam = grafo[nodo].adyacientes.size();
+  for(int i = 0; i < tam; ++i){
+    int indice = indices[grafo[nodo].adyacientes[i]];
+    int camino = caminos[nodo] + grafo[nodo].peso;
+    if(caminos[indice] == camino){
+      bool cc = perteneceCaminoCritico(indice);
+      if(cc){
+	caminoCritico[nodo] = true;
+	return true;
+      }
+    }
+  }
+  caminoCritico[nodo] = false;
+  return false;
+}
+
+//Calculamos los caminos máximos hacia cada nodo del grafo.
+void calcularCaminosMaximos(){
+  //Empezamos desde los nodos que dependen de START.
+  int tam = dependientesSTART.size();
+  for(int i = 0; i < tam; ++i){
+   bfsCaminosMaximos(dependientesSTART[i]); 
+  }
+}
+
+void calcularcaminosCriticos(){
+  //Empezamos desde los nodos que dependen de START.
+  int tam = dependientesSTART.size();
+  for(int i = 0; i < tam; ++i){
+    int nodo = dependientesSTART[i];
+    caminoCritico[nodo] = perteneceCaminoCritico(nodo); 
+  }
+}
+
+int calcularLSNodo(int nodo){
+  int LS;
+  if(nodo == nTareas){
+    LS = caminos[nodo];
+    ls[nodo] = LS;
+    return LS;
+  }
+  int tam = grafo[nodo].adyacientes.size();
+  int lsMin = 10000;
+  for(int i = 0; i < tam; ++i){
+    int indice = indices[grafo[nodo].adyacientes[i]];
+    int lsHijo = calcularLSNodo(indice);
+    if(lsHijo < lsMin) lsMin = lsHijo;
+  }
+  LS = lsMin-grafo[nodo].peso;
+  ls[nodo] = LS;
+  return LS;
+}
+
+void calcularLS(){
+  int tam = dependientesSTART.size();
+  for(int i = 0; i < tam; ++i){
+    int nodo = dependientesSTART[i];
+    ls[nodo] = calcularLSNodo(nodo); 
+  }
+}
+
+void escribirEspacios(int tam){
+  int n = 6 - tam;
+  for(int i = 0; i < n; ++i){
+    cout << " ";
+  }
+}
+
+void escribirNodo(int nodo){
+  int ES, EF, LS, LF, coste;
+  string cc, nombre;
+  coste = grafo[nodo].peso;
+  nombre = grafo[nodo].nombre;
+  if(caminoCritico[nodo]){
+    LS = ls[nodo];
+    ES = LS;
+    cc = "*";
+  }
+  else{
+    ES = caminos[nodo];
+    LS = ls[nodo];
+    cc = " ";
+  }
+  EF = ES + coste;
+  LF = LS + coste;
+  cout << nombre;
+  escribirEspacios(nombre.size());
+  ostringstream s1;
+  s1 << ES;
+  cout << s1.str();
+  escribirEspacios(s1.str().size());
+  ostringstream s2;
+  s2 << EF;
+  cout << s2.str();
+  escribirEspacios(s2.str().size());
+  ostringstream s3;
+  s3 << LS;
+  cout << s3.str();
+  escribirEspacios(s3.str().size());
+  ostringstream s4;
+  s4 << LF;
+  cout << s4.str();
+  escribirEspacios(s4.str().size());
+  cout << cc << endl;
+}
+
+/*
+void escribirGrafo(){
+  for(int i = 0; i < nTareas; ++i){
+    cout << grafo[i].nombre << "," << grafo[i].peso << ": ";
+    int tam = grafo[i].adyacientes.size();
+    for(int j = 0; j < tam; ++j){
+      cout << grafo[i].adyacientes[j] << ",";
+    }
+    cout << endl;
+  }
+}
+void escribirDependientesSTART(){
+  for(int i = 0; i < dependientesSTART.size(); ++i){
+    cout << dependientesSTART[i] << ",";
+  }
+  cout << endl;
+}
+
+void escribirCaminoCritico(){
+  for(int i = 0; i < nTareas; ++i){
+    cout << i << ": " << caminoCritico[i] << endl;
+  }
+}
+
+void escribirCaminos(){
+  for(int i = 0; i < nTareas+1; ++i){
+    cout << i << ": " << caminos[i] << endl;
+  }
+}
+
+void escribirLS(){
+  for(int i = 0; i < nTareas+1; ++i){
+    cout << i << ": " << ls[i] << endl;
+  }
+}
+*/
+
+void planificacion(){
+  vector<bool> visitados(nTareas,false);
+  cout << "START 0     0     0     0     *" << endl;
+  for(int i = 0; i < nTareas; ++i){
+    if(!visitados[i]){
+      escribirNodo(i);
+      visitados[i] = true;
+    }
+    int tam = grafo[i].adyacientes.size();
+    for(int j = 0; j < tam; ++j){
+      int indice = indices[grafo[i].adyacientes[j]];
+      if(indice != nTareas and !visitados[indice]){
+	escribirNodo(indice);
+	visitados[indice] = true;
+      }
+    }
+  }
+  int aux = ls[nTareas];
+  cout << "END   " << aux << "    " << aux << "    " << aux << "    " << aux << "    *" << endl;
+}
+
+int main(){
+  leerGrafo();
+  guardarDependientesSTART();
+  bool b = comprobarGrafoCiclico();
+  if(b) cout << "Proyecto contiene ciclos" << endl;
+  else{
+    calcularCaminosMaximos();
+    calcularcaminosCriticos();
+    calcularLS();
+    planificacion();
+  }
+}

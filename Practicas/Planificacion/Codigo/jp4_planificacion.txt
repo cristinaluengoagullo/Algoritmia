@@ -1,0 +1,9 @@
+8
+A 6 B  @
+B 1 E C @
+C 8 D A @
+D 5 F @
+E 9 F @
+F 12 @
+G 5 A I @
+I 50 D @

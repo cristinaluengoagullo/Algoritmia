@@ -1,0 +1,34 @@
+init A
+ins A hola
+ins A adeu
+ins A hello
+ins A goodbye
+ins A hola
+ins A adios
+cont A hola
+del A hola
+del A ciao
+cont A au_revoir
+cont A halo
+ins A halo
+cont A halo
+all A
+card A
+nth A 4
+max C
+max A
+leq A agur
+init B
+ins B hola
+ins B adeu
+ins B hello
+ins B goodbye
+ins B adios
+ins B au_revoir
+ins B auf_wiedersen
+ins B ciao
+merge A B
+all A
+card A
+between A agur ciao
+nth A 6
